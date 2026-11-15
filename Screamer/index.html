@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ваш телефон взломан МусорДропом</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #000; overflow: hidden;
+    cursor: none;
+    font-family: Consolas, "DejaVu Sans Mono", ui-monospace, monospace;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #stage { position: fixed; inset: 0; overflow: hidden; background: #000; }
+  #stage.glitch { animation: stageGlitch 90ms steps(2, end) 3; }
+  @keyframes stageGlitch {
+    0%   { filter: none; transform: translate(0, 0); }
+    40%  { filter: invert(1) hue-rotate(90deg); transform: translate(-8px, 4px) skewX(1.2deg); }
+    70%  { filter: invert(1) hue-rotate(-40deg); transform: translate(7px, -5px) skewX(-1deg); }
+    100% { filter: none; transform: translate(0, 0); }
+  }
+
+  .screen { position: absolute; inset: 0; display: none; }
+  .screen.on { display: block; }
+
+  /* ---------------- BIOS ---------------- */
+  #screen-boot {
+    padding: 4vmin 5vw;
+    background: #050505;
+    color: #c8c8c8;
+    font-size: clamp(10px, 1.25vw, 17px);
+    line-height: 1.55;
+    white-space: pre-wrap;
+    text-shadow: 0 0 6px rgba(190, 190, 190, .35);
+    animation: crtFlicker 3.2s infinite steps(1, end);
+  }
+  #bootlog { margin: 0; }
+  #bootlog .bad { color: #ff3b30; text-shadow: 0 0 9px rgba(255, 0, 0, .6); }
+  #bootlog .ok  { color: #4dff8b; text-shadow: 0 0 9px rgba(0, 255, 110, .45); }
+  #cursor { background: #d0d0d0; box-shadow: 0 0 8px #fff; }
+  @keyframes crtFlicker {
+    0%, 96%, 100% { opacity: 1; }
+    97% { opacity: .72; }
+    98% { opacity: 1; }
+    99% { opacity: .85; }
+  }
+
+  /* ---------------- No Command ---------------- */
+  #screen-nocommand { background: #050505; }
+  #screen-nocommand.on { display: flex; align-items: center; justify-content: center; }
+  #nc-box {
+    position: relative;
+    background: #1f6feb;
+    color: #fff;
+    padding: 1.1em 3.4em;
+    font-size: clamp(16px, 2.4vmin, 30px);
+    letter-spacing: .06em;
+    border: 2px solid #9cc0ff;
+    box-shadow: 0 0 0 14px rgba(31, 111, 235, .14), 0 0 90px rgba(31, 111, 235, .7);
+    animation: ncPulse 1.4s ease-in-out infinite, ncShake .28s steps(2, end) infinite;
+  }
+  @keyframes ncPulse {
+    0%, 100% { box-shadow: 0 0 0 14px rgba(31, 111, 235, .12), 0 0 70px rgba(31, 111, 235, .55); }
+    50%      { box-shadow: 0 0 0 26px rgba(31, 111, 235, .05), 0 0 140px rgba(80, 150, 255, .95); }
+  }
+  @keyframes ncShake {
+    0%, 100% { transform: translate(0, 0); }
+    33%      { transform: translate(-2px, 1px); }
+    66%      { transform: translate(2px, -1px); }
+  }
+  #nc-b {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #ff0033;
+    mix-blend-mode: screen;
+    animation: rgbSplit .6s steps(2, end) infinite;
+  }
+  @keyframes rgbSplit {
+    0%   { transform: translate(0, 0);     opacity: 0;   clip-path: inset(10% 0 62% 0); }
+    20%  { transform: translate(-4px, 0);  opacity: .85; clip-path: inset(10% 0 62% 0); }
+    40%  { transform: translate(5px, -2px); opacity: .7; clip-path: inset(48% 0 24% 0); }
+    60%  { transform: translate(-6px, 2px); opacity: .9; clip-path: inset(70% 0 8% 0); }
+    100% { transform: translate(0, 0);     opacity: 0; }
+  }
+
+  /* ---------------- синий экран ---------------- */
+  #screen-bsod {
+    background: #0078d7;
+    color: #fff;
+    box-sizing: border-box;
+    padding: 9vmin 9vw;
+    font-family: "Segoe UI", Arial, sans-serif;
+    animation: bsodIn .35s steps(3, end), bsodCreep 2.2s ease-in infinite alternate;
+  }
+  #screen-bsod.on { display: flex; flex-direction: column; justify-content: center; }
+  @keyframes bsodIn {
+    0%   { transform: scale(1.06) translateY(-12px); filter: brightness(2.2); opacity: .4; }
+    60%  { transform: scale(1.01); filter: brightness(1.1); opacity: 1; }
+    100% { transform: scale(1); filter: none; }
+  }
+  @keyframes bsodCreep {
+    from { filter: contrast(1) saturate(1); }
+    to   { filter: contrast(1.35) saturate(1.4) brightness(1.08); }
+  }
+  #screen-bsod .face  { font-size: 15vmin; line-height: 1; margin-bottom: 3vmin; }
+  #screen-bsod .title { font-size: 7.5vmin; font-weight: 700; margin-bottom: 3.5vmin; }
+  #screen-bsod p { font-size: 2.5vmin; line-height: 1.55; margin: 0 0 2.6vmin; max-width: 78ch; }
+  #screen-bsod .pct { font-variant-numeric: tabular-nums; }
+  #bsod-code { opacity: .9; word-break: break-all; }
+  .blink { animation: blink 1s steps(1, end) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------------- скример ---------------- */
+  #screen-scare { background: #000; overflow: hidden; }
+  #scare-face {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 40%;
+    transform-origin: 50% 42%;
+  }
+  @keyframes zoomShake {
+    0%   { transform: scale(1.02) translate(0, 0) rotate(0deg);          filter: contrast(1.1) brightness(.85) saturate(1.1); }
+    8%   { transform: scale(1.26) translate(-16px, 10px) rotate(-1.3deg); filter: contrast(2.1) brightness(1.7) saturate(1.9); }
+    18%  { transform: scale(1.12) translate(18px, -13px) rotate(1.5deg);  filter: contrast(2.7) brightness(2.3) hue-rotate(-14deg); }
+    30%  { transform: scale(1.38) translate(-10px, -18px) rotate(-.8deg); filter: contrast(1.8) brightness(1.25); }
+    44%  { transform: scale(1.17) translate(14px, 11px) rotate(1.1deg);   filter: contrast(3.1) brightness(2.8) saturate(.35); }
+    58%  { transform: scale(1.31) translate(-18px, 7px) rotate(-1.7deg);  filter: contrast(1.6) brightness(1.15); }
+    74%  { transform: scale(1.22) translate(11px, -9px) rotate(.9deg);    filter: contrast(2.4) brightness(1.9); }
+    88%  { transform: scale(1.44) translate(-6px, 4px) rotate(-.4deg);    filter: contrast(2.9) brightness(1.4) hue-rotate(12deg); }
+    100% { transform: scale(1.55) translate(0, 0) rotate(0deg);           filter: contrast(3.2) brightness(.55); }
+  }
+  #noise { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .38; mix-blend-mode: screen; }
+  #tears {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg,
+      rgba(255, 0, 40, .20) 0 3px, rgba(0, 0, 0, 0) 3px 10px);
+    mix-blend-mode: screen;
+    animation: tearShift 160ms steps(3, end) infinite;
+  }
+  @keyframes tearShift {
+    0%   { transform: translateY(0) scaleY(1.00); }
+    40%  { transform: translateY(-7px) scaleY(1.02); }
+    70%  { transform: translateY(5px) scaleY(.985); }
+    100% { transform: translateY(0) scaleY(1.00); }
+  }
+  .slice {
+    position: absolute; left: -12%; width: 124%; pointer-events: none;
+    mix-blend-mode: screen; opacity: .85;
+    animation: sliceJump 110ms steps(2, end) infinite;
+  }
+  @keyframes sliceJump {
+    0%   { transform: translateX(-6%); }
+    50%  { transform: translateX(9%); }
+    100% { transform: translateX(-2%); }
+  }
+  #flash  { position: absolute; inset: 0; background: #ff0018; opacity: 0; mix-blend-mode: screen; }
+  #invert { position: absolute; inset: 0; background: #fff;    opacity: 0; mix-blend-mode: difference; }
+
+  /* ---------------- подсознательный кадр ---------------- */
+  #subliminal {
+    position: absolute; inset: 0; opacity: 0; pointer-events: none;
+    z-index: 30;
+    background-size: cover; background-position: center 40%;
+    filter: contrast(2.6) brightness(.42) saturate(.15);
+    mix-blend-mode: screen;
+  }
+
+  /* ---------------- CRT-слой ---------------- */
+  #scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 40;
+    background: repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, .42) 0 1px, rgba(0, 0, 0, 0) 1px 3px);
+    animation: scanMove 5s linear infinite;
+  }
+  @keyframes scanMove { to { background-position: 0 120px; } }
+  #scanbar {
+    position: absolute; left: 0; right: 0; height: 16vh; z-index: 41;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .07), transparent);
+    animation: barRoll 3.6s linear infinite;
+  }
+  @keyframes barRoll { from { top: -20vh; } to { top: 112vh; } }
+  #vignette {
+    position: absolute; inset: 0; pointer-events: none; z-index: 42;
+    background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .85) 100%);
+  }
+
+  /* ---------------- подсказка про звук ---------------- */
+  #hint {
+    position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%);
+    z-index: 50; display: none;
+    color: #5c6570; font-size: 12px; letter-spacing: .22em;
+    text-transform: uppercase; pointer-events: none;
+    animation: blink 1.6s steps(1, end) infinite;
+  }
+  #hint.on { display: block; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="screen-boot" class="screen"><pre id="bootlog"></pre></div>
+
+  <div id="screen-nocommand" class="screen">
+    <div id="nc-box"><span>MysorDrop</span><span id="nc-b">No Command</span></div>
+  </div>
+
+  <div id="screen-bsod" class="screen">
+    <div class="face">:(</div>
+    <div class="title">Ваш телефон взломан МусорДропом</div>
+    <p>Не перезагружайте телефон или данные будут удалены! Не скачиваете игры из Play Market.</p>
+    <p class="pct"><span id="bsod-pct">0</span>% complete</p>
+    <p id="bsod-code"></p>
+  </div>
+
+  <div id="screen-scare" class="screen">
+    <img id="scare-face" alt="">
+    <canvas id="noise"></canvas>
+    <div id="tears"></div>
+    <div id="flash"></div>
+    <div id="invert"></div>
+  </div>
+
+  <div id="subliminal"></div>
+  <div id="scanlines"></div>
+  <div id="scanbar"></div>
+  <div id="vignette"></div>
+  <div id="hint">нажми, чтобы выключить вирус</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const FACE = '__FACE__';
+
+  /* ================== настройки ================== */
+  const CFG = {
+    dir: 'audio/',
+    prefix: 'jump-scare-',
+    maxFiles: 6,     // сколько номеров пробовать
+    rampCycles: 6     // за сколько циклов «градус» доходит до 1
+  };
+
+  /* ================== состояние ================== */
+  const state = {
+    cycle: 0,
+    intensity: 0,
+    phase: 'idle',
+    sounds: [],
+    soundCursor: 0,
+    audioLocked: false,
+    stopped: false,
+    timers: new Set(),
+    noiseOn: false
+  };
+  window.SCARE = state;          // видно из консоли, удобно для проверки
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage');
+  const bootlog = $('bootlog');
+  const faceImg = $('scare-face');
+  const subliminal = $('subliminal');
+  const canvas = $('noise');
+  const flash = $('flash');
+  const invert = $('invert');
+  const tears = $('tears');
+  const hint = $('hint');
+
+  faceImg.src = FACE;
+  subliminal.style.backgroundImage = 'url("' + FACE + '")';
+
+  const screens = {
+    boot: $('screen-boot'),
+    nocommand: $('screen-nocommand'),
+    bsod: $('screen-bsod'),
+    scare: $('screen-scare')
+  };
+
+  /* ================== утилиты ================== */
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const rint = (a, b) => Math.floor(rand(a, b + 1));
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  function wait(ms) {
+    return new Promise((resolve) => {
+      const t = setTimeout(() => { state.timers.delete(t); resolve(); }, ms);
+      state.timers.add(t);
+    });
+  }
+
+  function only(name) {
+    Object.keys(screens).forEach((k) => screens[k].classList.toggle('on', k === name));
+    state.phase = name;
+  }
+
+  function hideAll() {
+    Object.keys(screens).forEach((k) => screens[k].classList.remove('on'));
+    state.phase = 'black';
+  }
+
+  function glitchStage() {
+    stage.classList.remove('glitch');
+    void stage.offsetWidth;              // перезапуск анимации
+    stage.classList.add('glitch');
+  }
+
+  /* ================== звук: загрузка по одному ================== */
+  // Файлы прощупываются ПОСЛЕДОВАТЕЛЬНО: следующий номер запрашивается
+  // только когда предыдущий успешно прочитан — ничего не грузится разом.
+  function loadSound(n) {
+    if (n > CFG.maxFiles) return;
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = CFG.dir + CFG.prefix + n + '.mp3';
+
+    let settled = false;
+    const ok = () => {
+      if (settled) return;
+      settled = true;
+      state.sounds.push(audio);
+      loadSound(n + 1);                  // <- следующий только после этого
+    };
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      if (n === 1) {
+        console.warn('[scare] нет ' + CFG.dir + CFG.prefix +
+                     '1.mp3 ... — скримеры будут без звука');
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', ok);
+    audio.addEventListener('canplay', ok);
+    audio.addEventListener('error', fail);
+    setTimeout(fail, 6000);
+    audio.load();
+  }
+
+  // Первые скримеры берут звуки строго по порядку и тише,
+  // дальше — громче и вразнобой из второй половины списка.
+  function playScareSound() {
+    if (!state.sounds.length) return;
+
+    const last = state.sounds.length - 1;
+    const idx = state.soundCursor < state.sounds.length
+      ? state.soundCursor
+      : rint(Math.floor(state.sounds.length / 2), last);
+    state.soundCursor++;
+
+    const audio = state.sounds[idx];
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = clamp(0.3 + 0.7 * state.intensity, 0, 1);
+
+      const p = audio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => { hint.classList.remove('on'); state.audioLocked = false; })
+         .catch(lockAudio);
+      }
+    } catch (e) { lockAudio(); }
+  }
+
+  function lockAudio() {
+    if (state.audioLocked) return;
+    state.audioLocked = true;
+    hint.classList.add('on');
+  }
+
+  function unlockAudio() {
+    hint.classList.remove('on');
+    state.audioLocked = false;
+    document.removeEventListener('pointerdown', unlockAudio, true);
+    document.removeEventListener('keydown', unlockAudio, true);
+    document.removeEventListener('touchstart', unlockAudio, true);
+    document.removeEventListener('wheel', unlockAudio, true);
+  }
+
+  /* ================== низкий гул, нарастает ================== */
+  let drone = null;
+
+  function startDrone() {
+    if (drone) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      const ctx = new AC();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 48;
+
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.value = 23;
+
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.11;         // медленное «дыхание»
+      lfoGain.gain.value = 0.02;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+
+      osc.connect(gain);
+      sub.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(); sub.start(); lfo.start();
+      drone = { ctx, gain, osc, sub, lfo };
+    } catch (e) { drone = null; }
+  }
+
+  function swellDrone() {
+    if (!drone) return;
+    try {
+      const g = 0.02 + 0.16 * state.intensity;
+      drone.gain.gain.cancelScheduledValues(drone.ctx.currentTime);
+      drone.gain.gain.linearRampToValueAtTime(g, drone.ctx.currentTime + 1.2);
+      drone.osc.frequency.linearRampToValueAtTime(
+        44 + 22 * state.intensity, drone.ctx.currentTime + 1.2);
+    } catch (e) {}
+  }
+
+  /* ================== шум ================== */
+  let rafId = 0;
+
+  function noiseFrame() {
+    const w = canvas.width = Math.max(240, Math.floor(innerWidth / 2.4));
+    const h = canvas.height = Math.max(180, Math.floor(innerHeight / 2.4));
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() * 255;
+      const white = Math.random() < 0.05 ? 255 : 0;
+      d[i]     = Math.max(v, white);
+      d[i + 1] = Math.max(v * 0.10, white);
+      d[i + 2] = Math.max(v * 0.07, white);
+      d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function noiseStart() {
+    if (state.noiseOn) return;
+    state.noiseOn = true;
+    const tick = () => { noiseFrame(); rafId = requestAnimationFrame(tick); };
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function noiseStop() {
+    state.noiseOn = false;
+    cancelAnimationFrame(rafId);
+    canvas.width = 1;
+    canvas.height = 1;
+  }
+
+  /* ================== рваные полосы ================== */
+  function makeSlices(n) {
+    tears.querySelectorAll('.slice').forEach((el) => el.remove());
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'slice';
+      el.style.top = rand(0, 96) + '%';
+      el.style.height = rand(1.2, 6) + 'vh';
+      el.style.background = pick([
+        'rgba(255, 0, 40, .30)',
+        'rgba(255, 255, 255, .22)',
+        'rgba(0, 180, 255, .20)',
+        'rgba(0, 0, 0, .55)'
+      ]);
+      el.style.animationDuration = rand(60, 150).toFixed(0) + 'ms';
+      tears.appendChild(el);
+    }
+  }
+
+  /* ================== вспышки ================== */
+  async function flashBurst(count) {
+    for (let i = 0; i < count; i++) {
+      if (state.stopped) return;
+      flash.style.opacity = i % 3 === 0 ? '0' : String(rand(0.25, 0.85));
+      invert.style.opacity = Math.random() < 0.45 ? '1' : '0';
+      await wait(rand(35, 120));
+    }
+    flash.style.opacity = '0';
+    invert.style.opacity = '0';
+  }
+
+  /* ================== фаза 1: BIOS ================== */
+  const BOOT = [
+    ['AMIBIOS (C) 2026 MUSORDROP, Inc.', ''],
+    ['BIOS v1.00  P5-133  SYSTEM', ''],
+    ['', ''],
+    ['CPU  : Pentium(R) 133 MHz', ''],
+    ['Memory Test : 0000K OK', 'ok'],
+    ['', ''],
+    ['Detecting IDE Primary Master  ... None', ''],
+    ['Detecting IDE Primary Slave   ... None', ''],
+    ['Initializing USB Controllers .. Done', 'ok'],
+    ['Scanning boot sector ... UNREADABLE', 'bad'],
+    ['Loading HIMEM.SYS ............ OK', 'ok'],
+    ['Loading VMM32.VXD ............ FAIL', 'bad'],
+    ['VFS: Cannot find /dev/console', 'bad'],
+    ['', ''],
+    ['MUSORDROP', 'bad']
+  ];
+
+  async function bootPhase(ms) {
+    only('boot');
+    bootlog.innerHTML = '';
+
+    const chars = BOOT.reduce((s, l) => s + l[0].length + 1, 0);
+    const perChar = clamp(ms / Math.max(chars, 1), 3, 26);
+
+    for (const [text, cls] of BOOT) {
+      if (state.stopped) return;
+
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      bootlog.appendChild(line);
+
+      for (let i = 0; i < text.length; i++) {
+        if (state.stopped) return;
+        line.textContent += Math.random() < 0.012 ? pick('#@%&$?!') : text[i];
+        if (i % 2 === 0) await wait(perChar * 2);
+      }
+
+      if (Math.random() < 0.08) glitchStage();
+      await wait(clamp(ms / BOOT.length, 25, 220));
+    }
+
+    const cur = document.createElement('span');
+    cur.id = 'cursor';
+    cur.textContent = ' ';
+    bootlog.appendChild(cur);
+
+    await wait(rand(120, 320));
+  }
+
+  /* ================== фаза 2: No Command ================== */
+  async function noCommandPhase(ms) {
+    only('nocommand');
+    if (Math.random() < 0.5) glitchStage();
+    await wait(ms);
+  }
+
+  /* ================== фаза 3: синий экран ================== */
+  const CODES = [
+    'STOP CODE: MUSOR',
+    'STOP CODE: 0x000000C4  MUSORDROP',
+    'STOP CODE: I_LOVE_MUSORDROP',
+    'STOP CODE: DO_NOT_TURN_OFF',
+    'STOP CODE: 0x0000007B  YOU_PHONE_HACKED',
+    'STOP CODE: MUSORDROP TOP'
+  ];
+
+  async function bsodPhase(ms) {
+    only('bsod');
+
+    const pctEl = $('bsod-pct');
+    const codeEl = $('bsod-code');
+    const target = rint(4, 94);
+
+    codeEl.textContent = pick(CODES);
+    pctEl.textContent = '0';
+
+    const t0 = performance.now();
+    let pct = 0;
+
+    while (pct < target && performance.now() - t0 < ms * 0.75) {
+      if (state.stopped) return;
+      pct = Math.min(target, pct + rint(1, 9));
+      pctEl.textContent = String(pct);
+      if (Math.random() < 0.12) glitchStage();
+      await wait(rand(60, 180));
+    }
+
+    pctEl.textContent = '100';
+    codeEl.textContent = pick(CODES);
+    await wait(Math.max(200, ms - (performance.now() - t0)));
+  }
+
+  /* ================== фаза 4: скример ================== */
+  async function scarePhase(ms) {
+    only('scare');
+
+    faceImg.style.animation = 'none';
+    void faceImg.offsetWidth;
+    faceImg.style.animation =
+      'zoomShake ' + Math.round(ms * rand(0.9, 1.25)) + 'ms steps(260, end) both';
+
+    makeSlices(rint(3, Math.round(4 + 4 * state.intensity)));
+    noiseStart();
+    playScareSound();
+    swellDrone();
+    glitchStage();
+    flashBurst(rint(4, Math.round(6 + 5 * state.intensity)));
+
+    if (Math.random() < 0.6 + 0.4 * state.intensity) {
+      setTimeout(() => { if (!state.stopped) glitchStage(); }, rand(180, 420));
+    }
+
+    await wait(ms);
+
+    noiseStop();
+    flash.style.opacity = '0';
+    invert.style.opacity = '0';
+    hideAll();
+  }
+
+  /* ================== фаза 5: чернота ================== */
+  async function blackoutPhase(ms) {
+    hideAll();
+    noiseStop();
+
+    // подсознательный кадр — лицо на долю секунды
+    if (Math.random() < 0.35 + 0.55 * state.intensity) {
+      await wait(rand(120, Math.max(160, Math.min(700, ms * 0.6))));
+      if (state.stopped) return;
+
+      subliminal.style.opacity = String(rand(0.05, 0.10 + 0.16 * state.intensity));
+      await wait(rand(50, 110));
+      subliminal.style.opacity = '0';
+    }
+
+    await wait(Math.max(0, ms - 400));
+  }
+
+  /* ================== тайминги по «градусу» ================== */
+  function timings(t) {
+    return {
+      boot:      Math.round(2600 - 1500 * t),
+      nocommand: Math.round(1100 - 500 * t),
+      bsod:      Math.round(3200 - 1700 * t),
+      scare:     Math.round(650 + 950 * t),
+      gap:       Math.round(2600 - 2000 * t)
+    };
+  }
+
+  /* ================== главный цикл ================== */
+  async function run() {
+    while (!state.stopped) {
+      state.intensity = Math.min(1, state.cycle / CFG.rampCycles);
+      document.documentElement.style.setProperty('--i', state.intensity);
+      swellDrone();
+
+      const T = timings(state.intensity);
+
+      await bootPhase(T.boot);           if (state.stopped) return;
+      await noCommandPhase(T.nocommand); if (state.stopped) return;
+      await bsodPhase(T.bsod);           if (state.stopped) return;
+      await scarePhase(T.scare);         if (state.stopped) return;
+      await blackoutPhase(T.gap);        if (state.stopped) return;
+
+      state.cycle++;
+    }
+  }
+
+  /* ================== стоп (Esc) ================== */
+  function stop() {
+    state.stopped = true;
+    state.timers.forEach(clearTimeout);
+    state.timers.clear();
+    noiseStop();
+    hideAll();
+    flash.style.opacity = '0';
+    invert.style.opacity = '0';
+    subliminal.style.opacity = '0';
+    if (drone) {
+      try {
+        drone.gain.gain.linearRampToValueAtTime(0.0001, drone.ctx.currentTime + 0.3);
+        setTimeout(() => { try { drone.ctx.close(); } catch (e) {} }, 500);
+      } catch (e) {}
+      drone = null;
+    }
+    stage.style.display = 'none';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') stop();
+  });
+
+  /* ================== автозапуск ================== */
+  // Стартуем сразу, без клика. Если браузер запретил звук —
+  // показываем подсказку и ждём любого действия.
+  function autostart() {
+    startDrone();
+    swellDrone();
+    run();
+
+    document.addEventListener('pointerdown', unlockAudio, true);
+    document.addEventListener('keydown', unlockAudio, true);
+    document.addEventListener('touchstart', unlockAudio, true);
+    document.addEventListener('wheel', unlockAudio, true);
+  }
+
+  loadSound(1);
+  autostart();
+})();
+</script>
+</body>
+</html>
